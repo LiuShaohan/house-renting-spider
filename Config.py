@@ -1,10 +1,11 @@
 # coding=utf-8
-import ConfigParser
+import configparser as Configparser
+
 
 
 class Config(object):
     def __init__(self, config_file_name):
-        self.cf = ConfigParser.ConfigParser()
+        self.cf = Configparser.ConfigParser()
         self.cf.read(config_file_name) # read(filename) 直接读取ini文件内容
 
         key_list = self.cf.get('common', 'key_search_word_list').split(',') # get(section,option) 得到section中option的值，返回为string类型

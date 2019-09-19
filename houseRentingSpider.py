@@ -10,7 +10,7 @@ import os
 import requests
 from bs4 import BeautifulSoup
 
-import Config
+import Config as Config
 
 
 
@@ -59,7 +59,7 @@ class Main(object):
     def run(self):
         result_file_name = 'results/result_' + str(spider.file_time)
         try:
-            print 'Connecting database...  打开数据库...'
+            print('Connecting database...  打开数据库...')
             # creat database
             conn = sqlite3.connect(result_file_name + '.sqlite')
             conn.text_factory = str
@@ -90,7 +90,7 @@ class Main(object):
 
             def crawl(i, douban_url, keyword, douban_headers):
                 url_link = douban_url[i] + keyword
-                print 'url_link: ', url_link
+                print('url_link: ', url_link)
                 r = requests.get(url_link, headers=douban_headers)
                 if r.status_code == 200:
                     try:
@@ -133,36 +133,36 @@ class Main(object):
                                             [title_text, link_text, Utils.getTimeFromStr(time_text),
                                              datetime.datetime.now(), keyword,
                                              douban_url_name[i], reply_count])
-                                        print 'add new data:', title_text, time_text, reply_count, link_text, keyword
-                                    except sqlite3.Error, e:
-                                        print 'data exists:', title_text, link_text, e # URL should be unique
-                            except Exception, e:
-                                print 'error match table:', e
-                    except Exception, e:
-                        print 'error match paginator:', e
+                                        print('add new data:', title_text, time_text, reply_count, link_text, keyword)
+                                    except sqlite3.Error as e:
+                                        print('data exists:', title_text, link_text, e) # URL should be unique
+                            except Exception as e:
+                                print('error match table:', e)
+                    except Exception as e:
+                        print('error match paginator:', e)
                         spider.ok = False
                         return False
                 else:
-                    print 'request url error %s -status code: %s:' % (url_link, r.status_code)
+                    print('request url error %s -status code: %s:' % (url_link, r.status_code))
                 time.sleep(self.config.douban_sleep_time)
 
 
-            print 'The spider begins to work...  爬虫开始运行...'
+            print('The spider begins to work...  爬虫开始运行...')
 
             douban_url = urlList(0)
             for i in range(len(douban_url)):
                 page_number = 0
 
-                print 'start i ->',i
+                print('start i ->',i)
                 for j in range(len(search_list)):
                     spider.ok = True
                     page_number = 0
                     keyword = search_list[j]
-                    print 'start i->j %s -> %s %s' %(i, j, keyword)
-                    print '>>>>>>>>>> Search %s  %s ...' % (douban_url_name[i].encode('utf-8'), keyword)
+                    print('start i->j %s -> %s %s' %(i, j, keyword))
+                    print('>>>>>>>>>> Search %s  %s ...' % (douban_url_name[i].encode('utf-8'), keyword))
 
                     while spider.ok:
-                        print 'i, j, page_number: ', i, j, page_number
+                        print('i, j, page_number: ', i, j, page_number)
 
                         douban_url = urlList(page_number)
                         crawl(i, douban_url, keyword, self.douban_headers)
@@ -175,9 +175,9 @@ class Main(object):
             values = cursor.fetchall()
 
             # export to html file
-            print 'The spider has finished working. Now begin to write the data in the result HTML.   爬虫运行结束。开始写入结果文件'
+            print('The spider has finished working. Now begin to write the data in the result HTML.   爬虫运行结束。开始写入结果文件')
 
-            file = open(result_file_name + '.html', 'wb')
+            file = open(result_file_name + '.html', 'w', encoding='utf-8')
             with file:
                 file.write('''<html>
                     <head>
@@ -215,14 +215,14 @@ class Main(object):
                 file.write('<script type="text/javascript" src="../lib/resultPage.js"></script>')
                 file.write('</body></html>')
             cursor.close()
-        except Exception, e:
-            print 'Error:', e.message
+        except Exception as e:
+            print('Error:', e.message)
         finally:
             conn.commit()
             conn.close()
-            print '=============================================='
-            print 'Finished writing the result HTML. Please open "' + result_file_name + '.html" to check the result'
-            print '结果文件写入完毕。请打开"' + result_file_name + '.html"查看结果。'
+            print('==============================================')
+            print('Finished writing the result HTML. Please open "' + result_file_name + '.html" to check the result')
+            print('结果文件写入完毕。请打开"' + result_file_name + '.html"查看结果。')
 
 
 
