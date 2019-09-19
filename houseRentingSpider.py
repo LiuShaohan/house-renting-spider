@@ -13,11 +13,13 @@ from bs4 import BeautifulSoup
 import Config as Config
 
 
-
+'''
+【个人】11号线真如站，两室一厅朝南带阳台大主卧出租，民用水电，直接跟房东签合同，限女生
+'''
 class Utils(object):
     @staticmethod
     def isInBalckList(blacklist, toSearch):
-        if blacklist:
+        if blacklist is None:
             return False
         for item in blacklist:
             if toSearch.find(item) != -1:
@@ -113,6 +115,7 @@ class Main(object):
                                     title_text = title_element.get('title')
                                     # ignore items in blacklist
                                     if Utils.isInBalckList(custom_black_list, title_text):
+                                        print('------------------------,黑名单')
                                         continue
                                     time_text = td[1].get('title')
 
