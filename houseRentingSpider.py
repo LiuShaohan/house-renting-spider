@@ -11,40 +11,11 @@ import requests
 from bs4 import BeautifulSoup
 
 import Config as Config
-
-
-'''
-【个人】11号线真如站，两室一厅朝南带阳台大主卧出租，民用水电，直接跟房东签合同，限女生
-'''
-class Utils(object):
-    @staticmethod
-    def isInBalckList(blacklist, toSearch):
-        if blacklist is None:
-            return False
-        for item in blacklist:
-            if toSearch.find(item) != -1:
-                return True
-        return False
-
-    @staticmethod
-    def getTimeFromStr(timeStr):
-        # 13:47:32 or 2016-05-25 or 2016-05-25 13:47:32
-        # all be transformed to datetime
-        if '-' in timeStr and ':' in timeStr:
-            return datetime.datetime.strptime(timeStr, "%Y-%m-%d %H:%M:%S")
-        elif '-' in timeStr:
-            return datetime.datetime.strptime(timeStr, "%Y-%m-%d")
-        elif ':' in timeStr:
-            date_today = datetime.date.today();
-            date = datetime.datetime.strptime(timeStr, "%H:%M:%S")
-            # date.replace(year, month, day)：生成一个新的日期对象
-            return date.replace(year=date_today.year, month=date_today.month, day=date_today.day)
-        else:
-            return datetime.date.today()
-
+import Utils as Utils
 
 
 class Main(object):
+    # 初始化爬虫
     def __init__(self, config):
         self.config = config
         self.douban_headers = {
@@ -57,12 +28,12 @@ class Main(object):
             'HOST': 'www.douban.com',
             'Cookie': self.config.douban_cookie
         }
-
+    # 运行爬虫
     def run(self):
         result_file_name = 'results/result_' + str(spider.file_time)
         try:
             print('Connecting database...  打开数据库...')
-            # creat database
+            # 创建数据库sqlite
             conn = sqlite3.connect(result_file_name + '.sqlite')
             conn.text_factory = str
             cursor = conn.cursor()
@@ -71,10 +42,14 @@ class Main(object):
             cursor.close()
             cursor = conn.cursor()
 
-
+            # 读取配置文件
             search_list = self.config.key_search_word_list
             custom_black_list = self.config.custom_black_list
-            start_time = Utils.getTimeFromStr(self.config.start_time)
+            start_time = Utils.Utils.getTimeFromStr(self.config.start_time)
+            must_have_images = self.config.must_have_images
+            must_have_qr_images = self.config.must_have_qr_images
+            max_price = self.config.max_price
+            min_price = self.config.min_price
 
             def urlList(page_number):
                 num_in_url = str(page_number * 50)
@@ -93,6 +68,7 @@ class Main(object):
             def crawl(i, douban_url, keyword, douban_headers):
                 url_link = douban_url[i] + keyword
                 print('url_link: ', url_link)
+                # url获取到列表HTML源码
                 r = requests.get(url_link, headers=douban_headers)
                 if r.status_code == 200:
                     try:
@@ -113,27 +89,65 @@ class Main(object):
                                     td = tr.find_all('td')
                                     title_element = td[0].find_all('a')[0]
                                     title_text = title_element.get('title')
-                                    # ignore items in blacklist
-                                    if Utils.isInBalckList(custom_black_list, title_text):
-                                        print('------------------------,黑名单')
+                                    # 忽略不符合条件的URL
+                                    if Utils.Utils.isInBalckList(custom_black_list, title_text):
                                         continue
                                     time_text = td[1].get('title')
 
-                                    if (page_number != 0) and (Utils.getTimeFromStr(time_text) < start_time):
+                                    if (page_number != 0) and (Utils.Utils.getTimeFromStr(time_text) < start_time):
                                         spider.ok = False
                                         break
-                                    # ignore data ahead of the specific date
-                                    if Utils.getTimeFromStr(time_text) < start_time:
+                                    # 忽略指定日期之前的数据
+                                    if Utils.Utils.getTimeFromStr(time_text) < start_time:
                                         continue
                                     link_text = title_element.get('href');
 
                                     reply_count = td[2].find_all('span')[0].text
                                     tr_count_for_this_page += 1
-
+                                    # 获取详情页网页源码
+                                    htmlContent = Utils.Utils.getHtmlContentFromURL(link_text)
+                                    if htmlContent.strip():
+                                        # 价格判断
+                                        '''
+                                        if min_price >0 or max_price >0 :
+                                            # 获取正文文本和标题文本
+                                            title_text_1, content_text_1 = Utils.Utils.getTitleAndContentTextFromURL(
+                                                htmlContent)
+                                            titleMinPrice,titleMaxPrice = Utils.Utils.getPriceFromText(title_text_1)
+                                            contentMinPrice, contentMaxPrice = Utils.Utils.getPriceFromText(content_text_1)
+                                            # 最小值
+                                            minPrice = min(titleMinPrice,contentMinPrice)
+                                            # 最大值
+                                            maxPrice = max(titleMaxPrice,contentMaxPrice)
+                                            # 获取标题和正文的文字内容
+                                            print('min_price:',min_price)
+                                            print('minPrice:', minPrice)
+                                            print('max_price:', max_price)
+                                            print('maxPrice:', maxPrice)
+                                            if min_price <= minPrice and max_price<= maxPrice:
+                                                # 不符合条件，跳过
+                                                print('跳过了============================================跳过')
+                                                continue
+                                            print('！跳过了=====================没有跳过=======================!跳过')
+                                        '''
+                                        imglist = []
+                                        # 是否必须有图片
+                                        if must_have_images:
+                                            imglist = Utils.Utils.getImageURLNotUserHeadFromURL(htmlContent)
+                                            if len(imglist) <=0:
+                                                continue
+                                        # 是否必须有二维码
+                                        if must_have_qr_images:
+                                            if Utils.Utils.isNotExitQRImages(imglist) :
+                                                print(link_text)
+                                                print('没有二维码========================================')
+                                                continue
+                                            print(link_text)
+                                            print('有二维码========================================')
                                     try:
                                         cursor.execute(
                                             'INSERT INTO rent(id, title, url, itemtime, crawtime, source, keyword, note) VALUES(NULL, ?, ?, ?, ?, ?, ?, ?)',
-                                            [title_text, link_text, Utils.getTimeFromStr(time_text),
+                                            [title_text, link_text, Utils.Utils.getTimeFromStr(time_text),
                                              datetime.datetime.now(), keyword,
                                              douban_url_name[i], reply_count])
                                         print('add new data:', title_text, time_text, reply_count, link_text, keyword)
@@ -148,10 +162,9 @@ class Main(object):
                 else:
                     print('request url error %s -status code: %s:' % (url_link, r.status_code))
                 time.sleep(self.config.douban_sleep_time)
-
-
             print('The spider begins to work...  爬虫开始运行...')
 
+            # 爬虫运行
             douban_url = urlList(0)
             for i in range(len(douban_url)):
                 page_number = 0
@@ -177,7 +190,7 @@ class Main(object):
             cursor.execute('SELECT * FROM rent ORDER BY itemtime DESC ,crawtime DESC')
             values = cursor.fetchall()
 
-            # export to html file
+            # 将符合条件的，写入HTML文件
             print('The spider has finished working. Now begin to write the data in the result HTML.   爬虫运行结束。开始写入结果文件')
 
             file = open(result_file_name + '.html', 'w', encoding='utf-8')
@@ -219,7 +232,7 @@ class Main(object):
                 file.write('</body></html>')
             cursor.close()
         except Exception as e:
-            print('Error:', e.message)
+            print('Error:', e)
         finally:
             conn.commit()
             conn.close()
@@ -228,7 +241,7 @@ class Main(object):
             print('结果文件写入完毕。请打开"' + result_file_name + '.html"查看结果。')
 
 
-
+# 爬虫配置导入
 class Spider(object):
     def __init__(self):
         this_file_dir = os.path.split(os.path.realpath(__file__))[0]
@@ -242,6 +255,7 @@ class Spider(object):
             os.makedirs(results_path)
 
     def run(self):
+        # 开始执行爬虫与整理
         main = Main(self.config)
         main.run()
 

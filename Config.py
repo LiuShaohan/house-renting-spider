@@ -1,11 +1,11 @@
 # coding=utf-8
-import configparser as Configparser
+from configparser import ConfigParser
 
 
 
 class Config(object):
     def __init__(self, config_file_name):
-        self.cf = Configparser.ConfigParser()
+        self.cf = ConfigParser()
         self.cf.read(config_file_name) # read(filename) 直接读取ini文件内容
 
         key_list = self.cf.get('common', 'key_search_word_list').split(',') # get(section,option) 得到section中option的值，返回为string类型
@@ -13,6 +13,10 @@ class Config(object):
         self.key_search_word_list = [key.strip() for key in key_list]
         self.custom_black_list = [key.strip() for key in custom_black_list]
         # 上面两行是去掉key_list和custom_black_list中防止用户输入有空格啊换行什么的，只留下字
+        self.must_have_images = self.cf.get('common', 'must_have_images')
+        self.must_have_qr_images = self.cf.get('common', 'must_have_qr_images')
+        self.min_price = int(self.cf.get('common', 'min_price'))
+        self.max_price = int(self.cf.get('common', 'max_price'))
         self.start_time = self.cf.get('common', 'start_time')
 
         self.douban_cookie = self.cf.get('douban', 'douban_cookie')
