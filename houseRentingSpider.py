@@ -48,8 +48,8 @@ class Main(object):
             start_time = Utils.Utils.getTimeFromStr(self.config.start_time)
             must_have_images = self.config.must_have_images
             must_have_qr_images = self.config.must_have_qr_images
-            max_price = self.config.max_price
-            min_price = self.config.min_price
+            max_price = int(self.config.max_price)
+            min_price = int(self.config.min_price)
 
             def urlList(page_number):
                 num_in_url = str(page_number * 50)
@@ -102,17 +102,20 @@ class Main(object):
                                         continue
                                     link_text = title_element.get('href');
 
+                                    print('link_text:',link_text)
+
                                     reply_count = td[2].find_all('span')[0].text
                                     tr_count_for_this_page += 1
+
                                     # 获取详情页网页源码
                                     htmlContent = Utils.Utils.getHtmlContentFromURL(link_text)
                                     if htmlContent.strip():
                                         # 价格判断
-                                        '''
-                                        if min_price >0 or max_price >0 :
+                                        if min_price > 0 or max_price > 0:
                                             # 获取正文文本和标题文本
                                             title_text_1, content_text_1 = Utils.Utils.getTitleAndContentTextFromURL(
                                                 htmlContent)
+
                                             titleMinPrice,titleMaxPrice = Utils.Utils.getPriceFromText(title_text_1)
                                             contentMinPrice, contentMaxPrice = Utils.Utils.getPriceFromText(content_text_1)
                                             # 最小值
@@ -120,30 +123,27 @@ class Main(object):
                                             # 最大值
                                             maxPrice = max(titleMaxPrice,contentMaxPrice)
                                             # 获取标题和正文的文字内容
+                                            # 期望值
                                             print('min_price:',min_price)
+                                            # 真实值
                                             print('minPrice:', minPrice)
+                                            # 期望值
                                             print('max_price:', max_price)
+                                            # 真实值
                                             print('maxPrice:', maxPrice)
                                             if min_price <= minPrice and max_price<= maxPrice:
                                                 # 不符合条件，跳过
-                                                print('跳过了============================================跳过')
                                                 continue
-                                            print('！跳过了=====================没有跳过=======================!跳过')
-                                        '''
                                         imglist = []
                                         # 是否必须有图片
-                                        if must_have_images:
+                                        if int(must_have_images)!=0:
                                             imglist = Utils.Utils.getImageURLNotUserHeadFromURL(htmlContent)
                                             if len(imglist) <=0:
                                                 continue
                                         # 是否必须有二维码
-                                        if must_have_qr_images:
+                                        if int(must_have_qr_images)!=0:
                                             if Utils.Utils.isNotExitQRImages(imglist) :
-                                                print(link_text)
-                                                print('没有二维码========================================')
                                                 continue
-                                            print(link_text)
-                                            print('有二维码========================================')
                                     try:
                                         cursor.execute(
                                             'INSERT INTO rent(id, title, url, itemtime, crawtime, source, keyword, note) VALUES(NULL, ?, ?, ?, ?, ?, ?, ?)',
@@ -189,7 +189,6 @@ class Main(object):
             cursor = conn.cursor()
             cursor.execute('SELECT * FROM rent ORDER BY itemtime DESC ,crawtime DESC')
             values = cursor.fetchall()
-
             # 将符合条件的，写入HTML文件
             print('The spider has finished working. Now begin to write the data in the result HTML.   爬虫运行结束。开始写入结果文件')
 

@@ -94,11 +94,13 @@ class Utils(object):
             return True
 
     # 通过网页地址获取网页内容
+    @staticmethod
     def getHtmlContentFromURL(url):
         # 获取HTML内容
         return urllib.request.urlopen(url).read().decode('utf-8')
 
     # 通过网页内容获取网页内的图片地址
+    @staticmethod
     def getImageURLFromURL(url):
         htmlContent = Utils.getHtmlContentFromURL(url)
         # 获取HTML内容的图片URL
@@ -110,6 +112,7 @@ class Utils(object):
     # 通过网页内容获取网页内的图片地址(不包含用户头像)
     ##调用方式
     # htmlContent = Utils.Utils.getImageURLNotUserHeadFromURL("https://www.douban.com/group/topic/151841534/", tag='div', attrs={'class': {'user-face','side-reg'}})
+    @staticmethod
     def getImageURLNotUserHeadFromURL(htmlContent, tag='div', attrs={'class': {'user-face','side-reg'}}):
         # 去除头像标签
         soup = bs4.BeautifulSoup(htmlContent, 'html.parser')
@@ -121,6 +124,7 @@ class Utils(object):
         return imglist
 
     #获取标题和正文的文字内容
+    @staticmethod
     def getTitleAndContentTextFromURL(htmlContent, titleTag='h1', titleAttrs={}, contentTag='div',
                                       contentAttrs={'id': 'link-report'}):
         # 源代码转换格式   	BeautifulSoup(htmlContent, "html.parser")
@@ -142,21 +146,26 @@ class Utils(object):
         return rc.sub('', str(html))
 
     # 获取价格区间
+    @staticmethod
     def getPriceFromText(htmlContentText):
         if (htmlContentText is None):
             return -1
         # 处理文档，去除标签
         contentText = Utils.subTab(htmlContentText)
 
-        price = re.findall('\d+', contentText)
-        price = list(map(int, price))
-        if price:
-            if len(price) >= 2:
-                maxPrice = max(price)
-                print(maxPrice)
-                minPrice = min(price)
+        p = re.compile(r'\d+(?=\u5143)')# 数字串+元
+        price = re.findall(p, contentText)
+        maxPrice = minPrice = -1
+        if price :
+            price = list(map(int, price))
+            if price:
+                if len(price) >= 2:
+                    maxPrice = max(price)
+                    print(maxPrice)
+                    minPrice = min(price)
+                else:
+                    maxPrice = minPrice = max(price)
             else:
-                maxPrice = minPrice = max(price)
-        else:
-            return -1
+                return -1
         return minPrice, maxPrice
+
